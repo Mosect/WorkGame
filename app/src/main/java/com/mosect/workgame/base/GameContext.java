@@ -31,5 +31,10 @@ public interface GameContext {
      */
     int getFps();
 
+    /**
+     * 退出游戏
+     */
+    void exit();
+
     GameDisplay getDisplay();
 }

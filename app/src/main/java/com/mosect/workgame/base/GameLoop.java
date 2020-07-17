@@ -1,15 +1,18 @@
 package com.mosect.workgame.base;
 
-import android.content.Context;
+import android.app.Activity;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 
 import com.mosect.workgame.util.DataBuffer;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * 游戏循环
@@ -27,7 +30,11 @@ class GameLoop implements GameContext {
     private static final int EVENT_KEY = 9;
     private static final int EVENT_CHANGE_WINDOW_SIZE = 10;
 
-    private Context context;
+    private enum TouchState {
+        UP, DOWN, MOVE;
+    }
+
+    private Activity activity;
     private SurfaceHolder holder;
     private GameDisplay display;
     private int displayWidth;
@@ -45,9 +52,10 @@ class GameLoop implements GameContext {
     private LinkedList<DataBuffer> events; // 事件列表
     private GameTouchEvent touchEvent = new GameTouchEvent();
     private GameKeyEvent keyEvent = new GameKeyEvent();
+    private List<TouchState> touchStates = new ArrayList<>();
 
-    GameLoop(Context context) {
-        this.context = context;
+    GameLoop(Activity activity) {
+        this.activity = activity;
     }
 
     void setHolder(SurfaceHolder holder) {
@@ -148,17 +156,57 @@ class GameLoop implements GameContext {
     }
 
     void dispatchTouchEvent(MotionEvent event) {
+        Log.d("GameLoop", "dispatchTouchEvent:" + event.getPointerCount());
+        int index = event.getActionIndex();
+        int action = event.getAction();
+        for (int i = 0; i < ; i++) {
+            
+        }
+        switch (action) {
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                clearTouchStates();
+                break;
+        }
+        switch (action) {
+            case MotionEvent.ACTION_MOVE:
+                int count = event.getPointerCount();
+                for (int i = 0; i < count; i++) {
+                    int pointerId = event.getPointerId(i);
+                    float x = event.getX(i);
+                    float y = event.getY(i);
+                    postTouchEvent(action, pointerId, x, y);
+                }
+                break;
+            case MotionEvent.ACTION_POINTER_UP: {
+                int pointerId = event.getPointerId(index);
+                float x = event.getX(index);
+                float y = event.getY(index);
+                postTouchEvent(MotionEvent.ACTION_UP, pointerId, x, y);
+                break;
+            }
+            case MotionEvent.ACTION_POINTER_DOWN: {
+                int pointerId = event.getPointerId(index);
+                float x = event.getX(index);
+                float y = event.getY(index);
+                postTouchEvent(MotionEvent.ACTION_DOWN, pointerId, x, y);
+                break;
+            }
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                postTouchEvent(action, event.getPointerId(0), event.getX(), event.getY());
+                break;
+        }
+    }
+
+    private void postTouchEvent(int action, int pointerId, float x, float y) {
         DataBuffer eventData = createEventData();
         eventData.putInt(EVENT_TOUCH);
-        eventData.putInt(event.getAction());
-        int count = event.getPointerCount();
-        eventData.putInt(count);
-        for (int i = 0; i < count; i++) {
-            float x = event.getX(i);
-            float y = event.getY(i);
-            eventData.putFloat(x);
-            eventData.putFloat(y);
-        }
+        eventData.putInt(action);
+        eventData.putInt(pointerId);
+        eventData.putFloat(x);
+        eventData.putFloat(y);
         postEvent(eventData);
     }
 
@@ -200,6 +248,16 @@ class GameLoop implements GameContext {
     @Override
     public int getFps() {
         return fps;
+    }
+
+    @Override
+    public void exit() {
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                activity.finish();
+            }
+        });
     }
 
     @Override
@@ -324,12 +382,11 @@ class GameLoop implements GameContext {
         if (time < drawWaitTime) return;
 
         drawTime = now;
-        display.startDraw();
         canvas.drawColor(Color.BLACK);
         if (null != window) {
             window.onDraw(canvas);
         }
-        display.endDraw();
+        display.flush();
     }
 
     protected void onTouch(DataBuffer event) {
@@ -345,15 +402,12 @@ class GameLoop implements GameContext {
 
         int action = event.getInt();
         touchEvent.setAction(action);
-        int pointerCount = event.getInt();
-        touchEvent.setPointerCount(pointerCount);
-        float[] pointers = touchEvent.getPointers();
-        for (int i = 0; i < pointerCount; i++) {
-            float x = event.getFloat() * sw;
-            float y = event.getFloat() * sh;
-            pointers[i * 2] = x;
-            pointers[i * 2 + 1] = y;
-        }
+        int pointerId = event.getInt();
+        touchEvent.setPointerId(pointerId);
+        float x = event.getFloat();
+        float y = event.getFloat();
+        touchEvent.setX(x * sw);
+        touchEvent.setY(y * sh);
         window.onTouchEvent(touchEvent);
     }
 
@@ -392,6 +446,34 @@ class GameLoop implements GameContext {
             if (null != window) {
                 display.setContentSize(window.getWidth(), window.getHeight());
                 window.onDisplayConfigured();
+            }
+        }
+    }
+
+    private TouchState getTouchState(int id) {
+        if (null != touchStates && id >= 0 && id < touchStates.size()) {
+            return touchStates.get(id);
+        }
+        return TouchState.UP;
+    }
+
+    private void setTouchState(int id, TouchState state) {
+        if (id < 0) return;
+        if (null == touchStates) touchStates = new ArrayList<>();
+        if (id < touchStates.size()) {
+            touchStates.set(id, state);
+        } else {
+            while (touchStates.size() < id) {
+                touchStates.add(TouchState.UP);
+            }
+            touchStates.add(state);
+        }
+    }
+
+    private void clearTouchStates() {
+        if (null != touchStates) {
+            for (int i = 0; i < touchStates.size(); i++) {
+                touchStates.set(i, TouchState.UP);
             }
         }
     }

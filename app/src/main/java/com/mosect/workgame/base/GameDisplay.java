@@ -2,6 +2,7 @@ package com.mosect.workgame.base;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.view.SurfaceHolder;
@@ -15,7 +16,6 @@ public class GameDisplay {
     private int contentHeight;
     private Bitmap bitmap;
     private Canvas canvas;
-    private Canvas holderCanvas;
 
     private Rect src = new Rect();
     private RectF dst = new RectF();
@@ -76,7 +76,6 @@ public class GameDisplay {
     }
 
     void destroy() {
-        endDraw();
         clearCanvas();
     }
 
@@ -84,26 +83,20 @@ public class GameDisplay {
         return canvas;
     }
 
-    void startDraw() {
-        if (null != holderCanvas) return;
+    void flush() {
         try {
-            holderCanvas = holder.lockCanvas();
-        } catch (Exception e) {
-//            e.printStackTrace();
-        }
-    }
-
-    void endDraw() {
-        if (null == holderCanvas) return;
-        try {
-            if (null != bitmap && !bitmap.isRecycled()) {
-                src.set(0, 0, bitmap.getWidth(), bitmap.getHeight());
-                dst.set(0, 0, width, height);
-                holderCanvas.drawBitmap(bitmap, src, dst, null);
+            if (null != holder) {
+                Canvas holderCanvas = holder.lockCanvas();
+                holderCanvas.drawColor(Color.BLACK);
+                if (null != bitmap && !bitmap.isRecycled()) {
+                    src.set(0, 0, bitmap.getWidth(), bitmap.getHeight());
+                    dst.set(0, 0, width, height);
+                    holderCanvas.drawBitmap(bitmap, src, dst, null);
+                }
+                holder.unlockCanvasAndPost(holderCanvas);
             }
-            holder.unlockCanvasAndPost(holderCanvas);
         } catch (Exception e) {
-//            e.printStackTrace();
+            e.printStackTrace();
         }
     }
 

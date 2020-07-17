@@ -12,7 +12,11 @@
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup">
 
-        <activity android:name=".base.GameActivity">
+        <activity
+            android:name=".base.GameActivity"
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="keyboardHidden|screenSize|orientation"
+            android:theme="@style/AppTheme">
             <intent-filter>
                 <category android:name="android.intent.category.LAUNCHER" />
                 <action android:name="android.intent.action.MAIN" />

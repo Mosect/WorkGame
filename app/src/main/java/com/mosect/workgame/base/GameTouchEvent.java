@@ -1,12 +1,11 @@
 package com.mosect.workgame.base;
 
-import java.util.Arrays;
-
 public class GameTouchEvent {
 
     private int action;
-    private int pointerCount;
-    private float[] pointers;
+    private int pointerId;
+    private float x;
+    private float y;
 
     public int getAction() {
         return action;
@@ -16,45 +15,38 @@ public class GameTouchEvent {
         this.action = action;
     }
 
-    public float getX(int index) {
-        return pointers[index * 2];
+    public int getPointerId() {
+        return pointerId;
     }
 
-    public float getY(int index) {
-        return pointers[index * 2 + 1];
+    public void setPointerId(int pointerId) {
+        this.pointerId = pointerId;
     }
 
-    public int getPointerCount() {
-        return pointerCount;
+    public float getX() {
+        return x;
     }
 
-    public void setPointerCount(int pointerCount) {
-        if (pointerCount < 0) {
-            throw new IllegalArgumentException("pointerCount < 0");
-        }
-        this.pointerCount = pointerCount;
-        if (null == pointers) {
-            int count = Math.max(8, pointerCount * 2);
-            pointers = new float[count];
-        } else if (pointers.length / 2 < pointerCount) {
-            pointers = Arrays.copyOf(pointers, pointers.length * 2);
-        }
+    public void setX(float x) {
+        this.x = x;
     }
 
-    public float[] getPointers() {
-        return pointers;
+    public float getY() {
+        return y;
+    }
+
+    public void setY(float y) {
+        this.y = y;
     }
 
     public void offset(float x, float y) {
-        for (int i = 0; i < pointerCount; i++) {
-            pointers[i * 2] -= x;
-            pointers[i * 2 + 1] -= y;
-        }
+        this.x += x;
+        this.y += y;
     }
 
     @Override
     public String toString() {
-        return String.format("action=%s,pointerCount=%s,pointers=%s",
-                action, pointerCount, Arrays.toString(pointers));
+        return String.format("action=%s,pointerId=%s,x=%s,y=%s",
+                action, pointerId, x, y);
     }
 }
