@@ -58,6 +58,12 @@ public class Widget {
         this.focused = focused;
     }
 
+    /**
+     * 更新控件信息，当控件某些信息发生更改时，需要主动调用此方法更新其余信息
+     */
+    public void update() {
+    }
+
     public boolean dispatchTouchEvent(GameTouchEvent event) {
         if (touchPointerId < 0) {
             // 未确定触摸手指

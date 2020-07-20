@@ -20,5 +20,8 @@ public abstract class Graphics {
         return height;
     }
 
+    public void update() {
+    }
+
     public abstract void draw(Canvas canvas);
 }

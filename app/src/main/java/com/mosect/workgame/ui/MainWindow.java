@@ -7,6 +7,7 @@ import android.view.KeyEvent;
 
 import com.mosect.workgame.base.GameContext;
 import com.mosect.workgame.base.GameKeyEvent;
+import com.mosect.workgame.retro_snake.RetroSnakeWindow;
 import com.mosect.workgame.util.DataBuffer;
 
 /**
@@ -30,7 +31,7 @@ public class MainWindow extends BaseWindow {
         addMenu("贪吃蛇", null, new Runnable() {
             @Override
             public void run() {
-                getContext().setWindow(new RetroSnakerWindow());
+                getContext().setWindow(new RetroSnakeWindow());
             }
         });
         addMenu("打砖块", null, new Runnable() {

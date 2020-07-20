@@ -49,7 +49,7 @@ public class BaseWindow extends GameWindow {
     @Override
     protected void onTouchEvent(GameTouchEvent event) {
         super.onTouchEvent(event);
-        switch (event.getAction()) {
+        /*switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 Log.d("BaseWindow", "onTouch.down:" + event.getPointerId());
                 break;
@@ -57,7 +57,10 @@ public class BaseWindow extends GameWindow {
             case MotionEvent.ACTION_CANCEL:
                 Log.d("BaseWindow", "onTouch.up:" + event.getPointerId());
                 break;
-        }
+            case MotionEvent.ACTION_MOVE:
+                Log.d("BaseWindow", "onTouch.move:" + event.getPointerId());
+                break;
+        }*/
         if (null != widgets) {
             Widget touchWidget = getTouchWidget(event.getPointerId());
             if (null == touchWidget) {

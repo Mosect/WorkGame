@@ -48,7 +48,13 @@ public class RegularTriangle extends Graphics {
         this.angle = angle;
     }
 
+    public void setColor(int color) {
+        paint.setColor(color);
+    }
+
+    @Override
     public void update() {
+        super.update();
         path.reset();
         matrix.reset();
         matrix.postRotate(angle, 0.5f, 0.5f);

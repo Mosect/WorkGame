@@ -30,10 +30,6 @@ class GameLoop implements GameContext {
     private static final int EVENT_KEY = 9;
     private static final int EVENT_CHANGE_WINDOW_SIZE = 10;
 
-    private enum TouchState {
-        UP, DOWN, MOVE;
-    }
-
     private Activity activity;
     private SurfaceHolder holder;
     private GameDisplay display;
@@ -52,7 +48,7 @@ class GameLoop implements GameContext {
     private LinkedList<DataBuffer> events; // 事件列表
     private GameTouchEvent touchEvent = new GameTouchEvent();
     private GameKeyEvent keyEvent = new GameKeyEvent();
-    private List<TouchState> touchStates = new ArrayList<>();
+    private List<TouchInfo> touchInfoList;
 
     GameLoop(Activity activity) {
         this.activity = activity;
@@ -155,49 +151,46 @@ class GameLoop implements GameContext {
         postEvent(eventData);
     }
 
+    /**
+     * 分配滑动事件
+     *
+     * @param event 事件
+     */
     void dispatchTouchEvent(MotionEvent event) {
         Log.d("GameLoop", "dispatchTouchEvent:" + event.getPointerCount());
-        int index = event.getActionIndex();
-        int action = event.getAction();
-        for (int i = 0; i < ; i++) {
-            
-        }
-        switch (action) {
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                clearTouchStates();
-                break;
-        }
-        switch (action) {
-            case MotionEvent.ACTION_MOVE:
-                int count = event.getPointerCount();
-                for (int i = 0; i < count; i++) {
-                    int pointerId = event.getPointerId(i);
-                    float x = event.getX(i);
-                    float y = event.getY(i);
-                    postTouchEvent(action, pointerId, x, y);
+        int count = event.getPointerCount();
+        long time = System.currentTimeMillis();
+        boolean up = event.getAction() == MotionEvent.ACTION_UP ||
+                event.getAction() == MotionEvent.ACTION_CANCEL;
+        for (int i = 0; i < count; i++) {
+            int pointerId = event.getPointerId(i);
+            TouchInfo touchInfo = getTouchInfo(pointerId);
+            touchInfo.time = time;
+            float x = event.getX(i);
+            float y = event.getY(i);
+            if (touchInfo.pressed) {
+                if (up) {
+                    touchInfo.x = x;
+                    touchInfo.y = y;
+                    touchInfo.pressed = false;
+                    postTouchEvent(MotionEvent.ACTION_UP, pointerId, x, y);
+                } else if (touchInfo.x != x || touchInfo.y != y) {
+                    touchInfo.x = x;
+                    touchInfo.y = y;
+                    postTouchEvent(MotionEvent.ACTION_MOVE, pointerId, x, y);
                 }
-                break;
-            case MotionEvent.ACTION_POINTER_UP: {
-                int pointerId = event.getPointerId(index);
-                float x = event.getX(index);
-                float y = event.getY(index);
-                postTouchEvent(MotionEvent.ACTION_UP, pointerId, x, y);
-                break;
-            }
-            case MotionEvent.ACTION_POINTER_DOWN: {
-                int pointerId = event.getPointerId(index);
-                float x = event.getX(index);
-                float y = event.getY(index);
+            } else {
+                touchInfo.pressed = true;
+                touchInfo.x = x;
+                touchInfo.y = y;
                 postTouchEvent(MotionEvent.ACTION_DOWN, pointerId, x, y);
-                break;
+                if (up) {
+                    touchInfo.pressed = false;
+                    postTouchEvent(MotionEvent.ACTION_UP, pointerId, x, y);
+                }
             }
-            case MotionEvent.ACTION_DOWN:
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                postTouchEvent(action, event.getPointerId(0), event.getX(), event.getY());
-                break;
         }
+        postMissPointerUpEvent(time);
     }
 
     private void postTouchEvent(int action, int pointerId, float x, float y) {
@@ -210,6 +203,11 @@ class GameLoop implements GameContext {
         postEvent(eventData);
     }
 
+    /**
+     * 分配按键事件
+     *
+     * @param event 事件
+     */
     void dispatchKeyEvent(KeyEvent event) {
         DataBuffer eventData = createEventData();
         eventData.putInt(EVENT_KEY);
@@ -450,31 +448,47 @@ class GameLoop implements GameContext {
         }
     }
 
-    private TouchState getTouchState(int id) {
-        if (null != touchStates && id >= 0 && id < touchStates.size()) {
-            return touchStates.get(id);
+    /**
+     * 获取滑动信息
+     *
+     * @param pointerId 手指id
+     * @return 滑动信息
+     */
+    private TouchInfo getTouchInfo(int pointerId) {
+        if (null == touchInfoList) touchInfoList = new ArrayList<>();
+        while (touchInfoList.size() <= pointerId) {
+            touchInfoList.add(new TouchInfo(touchInfoList.size()));
         }
-        return TouchState.UP;
+        return touchInfoList.get(pointerId);
     }
 
-    private void setTouchState(int id, TouchState state) {
-        if (id < 0) return;
-        if (null == touchStates) touchStates = new ArrayList<>();
-        if (id < touchStates.size()) {
-            touchStates.set(id, state);
-        } else {
-            while (touchStates.size() < id) {
-                touchStates.add(TouchState.UP);
+    /**
+     * 传递丢失的手指释放事件
+     *
+     * @param time 时间
+     */
+    private void postMissPointerUpEvent(long time) {
+        if (null != touchInfoList) {
+            for (TouchInfo touchInfo : touchInfoList) {
+                if (touchInfo.pressed && touchInfo.time != time) {
+                    touchInfo.time = time;
+                    touchInfo.pressed = false;
+                    postTouchEvent(MotionEvent.ACTION_UP,
+                            touchInfo.pointerId, touchInfo.x, touchInfo.y);
+                }
             }
-            touchStates.add(state);
         }
     }
 
-    private void clearTouchStates() {
-        if (null != touchStates) {
-            for (int i = 0; i < touchStates.size(); i++) {
-                touchStates.set(i, TouchState.UP);
-            }
+    static class TouchInfo {
+        boolean pressed;
+        float x;
+        float y;
+        int pointerId;
+        long time;
+
+        TouchInfo(int pointerId) {
+            this.pointerId = pointerId;
         }
     }
 }

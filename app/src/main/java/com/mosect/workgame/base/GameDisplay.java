@@ -3,6 +3,7 @@ package com.mosect.workgame.base;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.view.SurfaceHolder;
@@ -16,6 +17,7 @@ public class GameDisplay {
     private int contentHeight;
     private Bitmap bitmap;
     private Canvas canvas;
+    private Paint paint;
 
     private Rect src = new Rect();
     private RectF dst = new RectF();
@@ -24,6 +26,9 @@ public class GameDisplay {
         this.holder = holder;
         this.width = width;
         this.height = height;
+        paint = new Paint();
+        paint.setStyle(Paint.Style.FILL);
+        paint.setAntiAlias(true);
     }
 
     public int getWidth() {
@@ -91,7 +96,7 @@ public class GameDisplay {
                 if (null != bitmap && !bitmap.isRecycled()) {
                     src.set(0, 0, bitmap.getWidth(), bitmap.getHeight());
                     dst.set(0, 0, width, height);
-                    holderCanvas.drawBitmap(bitmap, src, dst, null);
+                    holderCanvas.drawBitmap(bitmap, src, dst, paint);
                 }
                 holder.unlockCanvasAndPost(holderCanvas);
             }
