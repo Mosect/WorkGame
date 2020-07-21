@@ -36,5 +36,12 @@ public interface GameContext {
      */
     void exit();
 
+    /**
+     * 获取刷新的fps值
+     *
+     * @return 刷新的fps值，没1秒钟计算一次
+     */
+    int getRefreshFps();
+
     GameDisplay getDisplay();
 }

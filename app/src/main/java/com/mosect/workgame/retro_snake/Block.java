@@ -5,25 +5,10 @@ package com.mosect.workgame.retro_snake;
  */
 public class Block {
 
-    public enum State {
-        /**
-         * 空白格子
-         */
-        EMPTY,
-        /**
-         * 蛇身占用格子
-         */
-        SNAKE,
-        /**
-         * 奖励占用的格子
-         */
-        REWARD;
-    }
-
     private int x;
     private int y;
-    private State state = State.EMPTY;
-    private Direction direction; // 方向
+    private boolean used; // 格子是否被占用
+    private boolean reward; // 格子是否有奖励
 
     public Block(int x, int y) {
         this.x = x;
@@ -38,19 +23,19 @@ public class Block {
         return y;
     }
 
-    public State getState() {
-        return state;
+    public void setUsed(boolean used) {
+        this.used = used;
     }
 
-    public void setState(State state) {
-        this.state = state;
+    public boolean isUsed() {
+        return used;
     }
 
-    public Direction getDirection() {
-        return direction;
+    public void setReward(boolean reward) {
+        this.reward = reward;
     }
 
-    public void setDirection(Direction direction) {
-        this.direction = direction;
+    public boolean isReward() {
+        return reward;
     }
 }

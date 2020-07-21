@@ -15,8 +15,6 @@ import com.mosect.workgame.ui.BaseWindow;
 import com.mosect.workgame.ui.MainWindow;
 import com.mosect.workgame.widget.ActionButton;
 
-import java.util.LinkedList;
-
 /**
  * 贪吃蛇
  */
@@ -26,8 +24,8 @@ public class RetroSnakeWindow extends BaseWindow {
     private static final int HEIGHT = 1080;
     private static final int COLOR_NORMAL = Color.WHITE;
     private static final int COLOR_PRESSED = Color.argb(0xFF, 0xCC, 0xCC, 0xCC);
-    private static final int BUTTON_WIDTH = 120;
-    private static final int BUTTON_HEIGHT = 120;
+    private static final int BUTTON_WIDTH = 180;
+    private static final int BUTTON_HEIGHT = 180;
     private static final int BUTTON_PADDING = 20;
     private static final int CONTENT_MARGIN = 20;
     private static final int X_BLOCKS = 60;
@@ -41,40 +39,40 @@ public class RetroSnakeWindow extends BaseWindow {
     private int panelX; // 面板位置：X
     private int panelY; // 面板位置：Y
     private Paint paint; // 画笔
-    private Block[] blocks; // 块列表
-    private LinkedList<Block> snakeBody; // 蛇身体
-    private int snakeOffset; // 蛇便宜量
-    private Rect blockRect;
-    private long lastTickTime;
-    private int snakeSpeed; // 蛇速度
-    private Direction snakeDirection; // 蛇方向
+    private GamePanel panel;
+    private Snake snake;
 
     @Override
     protected void onCreate(GameContext context) {
         super.onCreate(context);
+        context.setFps(0);
         setSize(WIDTH, HEIGHT);
-        addOrientationButton(0, 500, 0, new Runnable() {
+        addOrientationButton(20, 400, 0, new Runnable() {
             @Override
             public void run() {
                 // 上
+                snake.setDirection(Direction.UP);
             }
         });
-        addOrientationButton(0, 640, 270, new Runnable() {
+        addOrientationButton(20, 600, 270, new Runnable() {
             @Override
             public void run() {
                 // 左
+                snake.setDirection(Direction.LEFT);
             }
         });
-        addOrientationButton(0, 780, 180, new Runnable() {
+        addOrientationButton(20, 800, 180, new Runnable() {
             @Override
             public void run() {
                 // 下
+                snake.setDirection(Direction.DOWN);
             }
         });
-        addOrientationButton(1800, 640, 90, new Runnable() {
+        addOrientationButton(1720, 600, 90, new Runnable() {
             @Override
             public void run() {
                 // 右
+                snake.setDirection(Direction.RIGHT);
             }
         });
 
@@ -83,7 +81,7 @@ public class RetroSnakeWindow extends BaseWindow {
                 newCircle(COLOR_NORMAL),
                 newCircle(COLOR_PRESSED),
         };
-        addButton(1800, 780, icons, new Runnable() {
+        addButton(1720, 800, icons, new Runnable() {
             @Override
             public void run() {
                 // 加速
@@ -115,24 +113,17 @@ public class RetroSnakeWindow extends BaseWindow {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(LINE_WIDTH);
 
-        // 产生块
-        blocks = new Block[X_BLOCKS * Y_BLOCKS];
-        for (int i = 0; i < blocks.length; i++) {
-            int x = i % X_BLOCKS;
-            int y = i / X_BLOCKS;
-            blocks[i] = new Block(x, y);
-        }
-        // 产生蛇身体
-        snakeBody = new LinkedList<>();
-        blockRect = new Rect();
-        int x = (X_BLOCKS - SNAKE_DEF_LENGTH) / 2;
-        int y = Y_BLOCKS / 2;
-        for (int i = 0; i < SNAKE_DEF_LENGTH; i++) {
-            addSnakeBody(x + i, y, Direction.RIGHT);
-        }
-        snakeOffset = 0;
-        snakeSpeed = 2;
-        snakeDirection = Direction.RIGHT;
+        panel = new GamePanel(panelX, panelY, X_BLOCKS, Y_BLOCKS, blockSize);
+        snake = new Snake(panel);
+        int bx = (panel.getXCount() - SNAKE_DEF_LENGTH) / 2;
+        int by = panel.getYCount() / 2;
+        int bl = bx * blockSize + panelX;
+        int br = bl + blockSize * SNAKE_DEF_LENGTH;
+        int bt = by * blockSize + panelY;
+        int bb = bt + blockSize;
+        snake.addBody(bl, bt, br, bb, Direction.RIGHT);
+        snake.setSpeed(blockSize * 10);
+        snake.setDirection(Direction.RIGHT);
     }
 
     @Override
@@ -142,15 +133,19 @@ public class RetroSnakeWindow extends BaseWindow {
             switch (event.getCode()) {
                 case KeyEvent.KEYCODE_DPAD_UP:
                     // 上
+                    snake.setDirection(Direction.UP);
                     break;
                 case KeyEvent.KEYCODE_DPAD_DOWN:
                     // 下
+                    snake.setDirection(Direction.DOWN);
                     break;
                 case KeyEvent.KEYCODE_DPAD_LEFT:
                     // 左
+                    snake.setDirection(Direction.LEFT);
                     break;
                 case KeyEvent.KEYCODE_DPAD_RIGHT:
                     // 右
+                    snake.setDirection(Direction.RIGHT);
                     break;
                 case KeyEvent.KEYCODE_Z:
                 case KeyEvent.KEYCODE_X:
@@ -175,7 +170,7 @@ public class RetroSnakeWindow extends BaseWindow {
         paint.setStrokeWidth(LINE_WIDTH);
         canvas.drawRect(panelBounds, paint);
         // 绘制格子
-        paint.setStyle(Paint.Style.STROKE);
+        /*paint.setStyle(Paint.Style.STROKE);
         paint.setColor(Color.RED);
         paint.setStrokeWidth(1);
         for (int x = 1; x < X_BLOCKS; x++) {
@@ -185,39 +180,16 @@ public class RetroSnakeWindow extends BaseWindow {
         for (int y = 1; y < Y_BLOCKS; y++) {
             float ly = panelY + y * blockSize;
             canvas.drawLine(panelX, ly, panelX + blockSize * X_BLOCKS, ly, paint);
-        }
+        }*/
 
         // 绘制蛇
-        Block first = snakeBody.getFirst();
-        Block last = snakeBody.getLast();
-        for (Block block : snakeBody) {
-            if (snakeOffset == 0) {
-                drawBlock(canvas, block, 0);
-            } else {
-                if (block == first) {
-                    drawBlock(canvas, block, snakeOffset - blockSize);
-                } else if (block == last) {
-                    drawBlock(canvas, block, snakeOffset);
-                } else {
-                    drawBlock(canvas, block, 0);
-                }
-            }
-        }
+        snake.draw(canvas);
     }
 
     @Override
     protected void onTick() {
         super.onTick();
-        long now = System.currentTimeMillis();
-        if (lastTickTime == 0) {
-            onTickGame();
-            lastTickTime = now;
-        } else {
-            while (now - lastTickTime >= TICK_TIME) {
-                lastTickTime += TICK_TIME;
-                onTickGame();
-            }
-        }
+        snake.tick();
     }
 
     private void addOrientationButton(int x, int y, int angle, Runnable action) {
@@ -252,86 +224,4 @@ public class RetroSnakeWindow extends BaseWindow {
         return circle;
     }
 
-    /**
-     * 获取块
-     *
-     * @param x 位置：X
-     * @param y 位置：Y
-     * @return 块
-     */
-    private Block getBlock(int x, int y) {
-        if (x >= 0 && x < X_BLOCKS && y >= 0 && y < Y_BLOCKS) {
-            return blocks[y * X_BLOCKS + x];
-        }
-        return null;
-    }
-
-    /**
-     * 添加蛇身体
-     *
-     * @param x         位置：X
-     * @param y         位置：Y
-     * @param direction 方向
-     */
-    private void addSnakeBody(int x, int y, Direction direction) {
-        Block block = getBlock(x, y);
-        block.setState(Block.State.SNAKE);
-        block.setDirection(direction);
-        snakeBody.addFirst(block);
-    }
-
-    private void onTickGame() {
-        int oldOffset = snakeOffset;
-        snakeOffset += snakeSpeed;
-        if (oldOffset == 0) {
-            if (snakeOffset != 0) {
-                int moveCount = snakeOffset / blockSize;
-                snakeOffset = snakeOffset % blockSize;
-            }
-        }
-        while (snakeOffset > blockSize) {
-            Block first = snakeBody.getFirst();
-            Block next = null;
-            switch (snakeDirection) {
-                case LEFT:
-                    next = getBlock(first.getX() - 1, first.getY());
-                    break;
-                case UP:
-                    next = getBlock(first.getX(), first.getY() - 1);
-                    break;
-                case RIGHT:
-                    next = getBlock(first.getX() + 1, first.getY());
-                    break;
-                case DOWN:
-                    next = getBlock(first.getX(), first.getY() + 1);
-                    break;
-            }
-            if (null == next) {
-                // 不存在下一块，游戏结束
-            } else {
-                addSnakeBody(next.getX(), next.getY(), snakeDirection);
-            }
-        }
-    }
-
-    private void drawBlock(Canvas canvas, Block block, int offset) {
-        int left = panelX + block.getX() * blockSize;
-        int top = panelY + block.getY() * blockSize;
-        int right = left + blockSize;
-        int bottom = top + blockSize;
-        blockRect.set(left, top, right, bottom);
-        switch (block.getDirection()) {
-            case UP:
-            case DOWN:
-                blockRect.offset(0, offset);
-                break;
-            case LEFT:
-            case RIGHT:
-                blockRect.offset(offset, 0);
-                break;
-        }
-        paint.setStyle(Paint.Style.FILL);
-        paint.setColor(Color.WHITE);
-        canvas.drawRect(blockRect, paint);
-    }
 }

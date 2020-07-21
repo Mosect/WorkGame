@@ -1,7 +1,9 @@
 package com.mosect.workgame.ui;
 
 import android.graphics.Canvas;
-import android.util.Log;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.view.MotionEvent;
 
 import com.mosect.workgame.base.GameKeyEvent;
@@ -16,6 +18,20 @@ public class BaseWindow extends GameWindow {
 
     private List<Widget> widgets;
     private List<Widget> touchWidgets;
+    private Paint fpsPaint = new Paint();
+    private float fpsX;
+    private float fpsY;
+
+    public BaseWindow() {
+        fpsPaint.setAntiAlias(true);
+        fpsPaint.setTextSize(24);
+        fpsPaint.setColor(Color.WHITE);
+        String fpsText = "FPS:60";
+        Rect rect = new Rect();
+        fpsPaint.getTextBounds(fpsText, 0, fpsText.length(), rect);
+        fpsY = rect.height() - rect.bottom + 10;
+        fpsX = 10;
+    }
 
     public void addWidget(Widget widget) {
         if (null == widgets) widgets = new ArrayList<>();
@@ -109,6 +125,8 @@ public class BaseWindow extends GameWindow {
                 widget.dispatchDraw(canvas);
             }
         }
+        String text = String.format("FPS:%s", getContext().getRefreshFps());
+        canvas.drawText(text, fpsX, fpsY, fpsPaint);
     }
 
     private void setTouchWidget(int index, Widget widget) {

@@ -42,6 +42,9 @@ class GameLoop implements GameContext {
     private boolean started;
     private GameWindow window;
     private boolean resumed;
+    private int refreshFps;
+    private long refreshFpsTime;
+    private int currentRefreshFps;
 
     private final byte[] eventLock = new byte[0];
     private LinkedList<DataBuffer> eventDataCacheList;
@@ -127,7 +130,10 @@ class GameLoop implements GameContext {
                     onTick();
 
                     // 绘制
+//                    long time = System.currentTimeMillis();
                     onDraw();
+//                    time = System.currentTimeMillis() - time;
+//                    Log.d("GameLoop", "onDraw: " + time);
                 }
             }
         }.start();
@@ -259,6 +265,11 @@ class GameLoop implements GameContext {
     }
 
     @Override
+    public int getRefreshFps() {
+        return refreshFps;
+    }
+
+    @Override
     public GameDisplay getDisplay() {
         return display;
     }
@@ -373,18 +384,39 @@ class GameLoop implements GameContext {
 
     protected void onDraw() {
         if (null == display) return;
-        Canvas canvas = display.getCanvas();
+//        long t = System.currentTimeMillis();
+        Canvas canvas = display.lockCanvas();
+//        t = System.currentTimeMillis() - t;
+//        Log.d("GameLoop", "lockCanvas: " + t);
         if (null == canvas) return;
         long now = System.currentTimeMillis();
         long time = now - drawTime;
-        if (time < drawWaitTime) return;
+        if (drawWaitTime > 0 && time < drawWaitTime) return;
 
         drawTime = now;
+//        t = System.currentTimeMillis();
         canvas.drawColor(Color.BLACK);
         if (null != window) {
             window.onDraw(canvas);
         }
-        display.flush();
+//        t = System.currentTimeMillis() - t;
+//        Log.d("GameLoop", "draw: " + t);
+//        t = System.currentTimeMillis();
+        display.postCanvas();
+//        t = System.currentTimeMillis() - t;
+//        Log.d("GameLoop", "postCanvas: " + t);
+        if (refreshFpsTime == 0) {
+            refreshFpsTime = System.currentTimeMillis();
+            currentRefreshFps = 1;
+        } else {
+            currentRefreshFps++;
+            long cur = System.currentTimeMillis();
+            if (cur - refreshFpsTime >= 1000) {
+                refreshFps = currentRefreshFps;
+                currentRefreshFps = 0;
+                refreshFpsTime = cur;
+            }
+        }
     }
 
     protected void onTouch(DataBuffer event) {
