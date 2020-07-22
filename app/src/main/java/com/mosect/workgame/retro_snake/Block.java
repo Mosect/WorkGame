@@ -8,7 +8,7 @@ public class Block {
     private int x;
     private int y;
     private boolean used; // 格子是否被占用
-    private boolean reward; // 格子是否有奖励
+    private Direction direction; // 方向
 
     public Block(int x, int y) {
         this.x = x;
@@ -31,11 +31,16 @@ public class Block {
         return used;
     }
 
-    public void setReward(boolean reward) {
-        this.reward = reward;
+    public Direction getDirection() {
+        return direction;
     }
 
-    public boolean isReward() {
-        return reward;
+    public void setDirection(Direction direction) {
+        this.direction = direction;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("{x=%s,y=%s,used=%s,direction=%s}", x, y, used, direction);
     }
 }

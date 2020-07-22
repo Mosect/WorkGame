@@ -12,148 +12,189 @@ import java.util.LinkedList;
  */
 public class Snake {
 
-    private Direction direction; // 蛇的方向
-    private LinkedList<SnakeBlock> blocks = new LinkedList<>(); // 蛇的身体
-    private LinkedList<SnakeBlock> cacheBlocks = new LinkedList<>();
-    private Paint paint = new Paint();
-    private GamePanel panel;
-    private long tickTime;
-    private int speed; // 速度
+    private RetroSnakeWorld world;
+    private LinkedList<SnakeBody> bodies;
+    private Paint paint;
+    private int speed;
 
-    public Snake(GamePanel panel) {
-        paint.setColor(Color.WHITE);
-        paint.setStyle(Paint.Style.FILL);
-        paint.setAntiAlias(true);
-        this.panel = panel;
-    }
-
-    public void setSpeed(int speed) {
-        this.speed = speed;
+    public Snake(RetroSnakeWorld world) {
+        this.world = world;
+        this.bodies = new LinkedList<>();
+        this.paint = new Paint();
+        this.paint.setAntiAlias(true);
+        this.paint.setStyle(Paint.Style.FILL);
+        this.paint.setColor(Color.WHITE);
+        this.paint.setStrokeWidth(0);
     }
 
     public int getSpeed() {
         return speed;
     }
 
-    /**
-     * 移动蛇
-     *
-     * @param offset 偏移量
-     */
-    private void move(int offset) {
-        if (blocks.isEmpty()) return;
-        SnakeBlock last = blocks.getLast();
-        SnakeBlock first = blocks.getFirst();
-        if (offset < 0) {
-            // 倒退
-
-            // 伸长尾部
-            last.offset(offset);
-            // 缩短头部
-            first.offset(-offset);
-        } else {
-            // 前进
-
-            // 伸长头部
-            first.offset(offset);
-            // 缩短尾部
-            last.offset(-offset);
-        }
-        if (first == last) {
-            first.useBlocks();
-            Log.d("Snake", "move: first,last: " + first);
-        } else {
-            first.useBlocks();
-            last.useBlocks();
-            Log.d("Snake", "move: first: " + first);
-            Log.d("Snake", "move: last: " + last);
-        }
+    public void setSpeed(int speed) {
+        this.speed = speed;
     }
 
-    public void tick() {
-        if (tickTime == 0) {
-            tickTime = System.currentTimeMillis();
-        } else {
-            long now = System.currentTimeMillis();
-            long part = now - tickTime;
-            if (part > 0) {
-                int offset = (int) (part * speed / 1000);
-                if (offset != 0) {
-                    move(offset);
-                }
-                tickTime = now;
+    public void setBody(SnakeBody body) {
+        bodies.clear();
+        bodies.addFirst(body);
+    }
+
+    private int oldCount;
+
+    public void draw(Canvas canvas) {
+        if (!bodies.isEmpty()) {
+            for (SnakeBody body : bodies) {
+                body.draw(canvas, paint);
             }
         }
-    }
-
-    /**
-     * 绘制蛇
-     *
-     * @param canvas 画布
-     */
-    public void draw(Canvas canvas) {
-        for (SnakeBlock block : blocks) {
-            block.draw(canvas, paint);
+        if (bodies.size() != oldCount) {
+            Log.d("Snake", "bodies==================================================");
+            for (SnakeBody body : bodies) {
+                Log.d("Snake", "body: " + body);
+            }
         }
+        oldCount = bodies.size();
     }
 
-    /**
-     * 添加身体
-     *
-     * @param left      左
-     * @param top       上
-     * @param right     右
-     * @param bottom    下
-     * @param direction 方向
-     */
-    public void addBody(int left, int top, int right, int bottom, Direction direction) {
-        SnakeBlock block = genBlock();
-        block.setDirection(direction);
-        block.setRect(left, top, right, bottom);
-        block.useBlocks();
-        blocks.addFirst(block);
-        setDirection(direction);
+    public void tick(long time) {
+        if (bodies.isEmpty()) return;
+        int offset = (int) (time * speed / 1000);
+        if (offset > 0) {
+            // 增加头部身体长度
+            Direction direction = world.getNextDirection();
+            SnakeBody first = bodies.getFirst();
+            if (direction == first.getDirection()) {
+                first.addLength(offset);
+            } else {
+                int value;
+                switch (first.getDirection()) {
+                    case LEFT:
+                    case RIGHT:
+                        value = first.getLeft() % world.getBlockSize();
+                        break;
+                    case DOWN:
+                    case UP:
+                        value = first.getTop() % world.getBlockSize();
+                        break;
+                    default:
+                        value = 0;
+                        break;
+                }
+                if (value == 0) {
+                    // 刚好填满格子
+//                    Log.d("Snake", "value==0  >>>>  " + first);
+                    SnakeBody body = nextBody(offset);
+                    if (null != body) {
+                        bodies.addFirst(body);
+                    }
+                } else {
+                    if (value + offset > world.getBlockSize()) {
+                        // 移动超过一个格子，先填满格子，再增加下一个身体
+                        int fullOffset = world.getBlockSize() - value;
+                        first.addLength(fullOffset);
+//                        Log.d("Snake", "addLength:full" + first);
+                        SnakeBody body = nextBody(offset - fullOffset);
+                        if (null != body) {
+                            bodies.addFirst(body);
+                        }
+                    } else {
+                        // 移动少于一个格子
+                        first.addLength(offset);
+//                        Log.d("Snake", "first.addLength(offset)");
+                    }
+                }
+            }
+            int reduceValue = offset;
+            while (reduceValue > 0) {
+                SnakeBody last = bodies.getLast();
+                int lastLength = last.getLength();
+                if (lastLength > reduceValue) {
+                    // 尾部长度足够
+                    // 缩短身体长度
+                    last.reduceLength(reduceValue);
+                    reduceValue = 0;
+                } else {
+                    // 长度不够，移除身体
+                    bodies.removeLast();
+                    reduceValue -= lastLength;
+                }
+            }
+        }
     }
 
     public Direction getDirection() {
-        return direction;
+        if (!bodies.isEmpty()) {
+            return bodies.getFirst().getDirection();
+        }
+        return null;
     }
 
-    public void setDirection(Direction direction) {
-        this.direction = direction;
-        if (!blocks.isEmpty()) {
-            SnakeBlock first = blocks.getFirst();
+    private SnakeBody nextBody(int length) {
+        Direction direction = world.getNextDirection();
+        SnakeBody first = bodies.getFirst();
+        int l = first.getLeft() / world.getBlockSize();
+        int t = first.getTop() / world.getBlockSize();
+        int r = first.getRight() / world.getBlockSize() +
+                (first.getRight() % world.getBlockSize() == 0 ? 0 : 1);
+        int b = first.getBottom() / world.getBlockSize() +
+                (first.getBottom() % world.getBlockSize() == 0 ? 0 : 1);
+        switch (first.getDirection()) {
+            case LEFT:
+                return genBody(l, t, length, direction);
+            case RIGHT:
+                return genBody(r - 1, t, length, direction);
+            case UP:
+                return genBody(l, t, length, direction);
+            case DOWN:
+                return genBody(l, b - 1, length, direction);
+        }
+        return null;
+    }
+
+    private SnakeBody genBody(int x, int y, int length, Direction direction) {
+        int fx = x;
+        int fy = y;
+        switch (direction) {
+            case LEFT:
+                fx -= 1;
+                break;
+            case RIGHT:
+                fx += 1;
+                break;
+            case DOWN:
+                fy += 1;
+                break;
+            case UP:
+                fy -= 1;
+                break;
+            default:
+                fx = -1;
+                fy = -1;
+                break;
+        }
+        if (fx >= 0 && fx < world.getXBlocks() && y >= 0 && y < world.getYBlocks()) {
+            SnakeBody body = new SnakeBody();
+            int left = fx * world.getBlockSize();
+            int top = fy * world.getBlockSize();
+            int right = left + world.getBlockSize();
+            int bottom = top + world.getBlockSize();
             switch (direction) {
-                case RIGHT:
-                    if (first.getDirection() == Direction.LEFT) {
-                        this.direction = Direction.LEFT;
-                    }
-                    break;
-                case LEFT:
-                    if (first.getDirection() == Direction.RIGHT) {
-                        this.direction = Direction.RIGHT;
-                    }
-                    break;
                 case UP:
-                    if (first.getDirection() == Direction.DOWN) {
-                        this.direction = Direction.DOWN;
-                    }
+                    body.set(left, bottom - length, right, bottom, direction);
                     break;
                 case DOWN:
-                    if (first.getDirection() == Direction.UP) {
-                        this.direction = Direction.UP;
-                    }
+                    body.set(left, top, right, top + length, direction);
+                    break;
+                case RIGHT:
+                    body.set(left, top, left + length, bottom, direction);
+                    break;
+                case LEFT:
+                    body.set(right - length, top, right, bottom, direction);
                     break;
             }
+            return body;
         }
-    }
-
-    private SnakeBlock genBlock() {
-        if (cacheBlocks.isEmpty()) {
-            return new SnakeBlock(panel);
-        }
-        SnakeBlock block = cacheBlocks.removeFirst();
-        block.clear();
-        return block;
+        return null;
     }
 }
