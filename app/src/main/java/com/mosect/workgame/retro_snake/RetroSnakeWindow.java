@@ -141,6 +141,15 @@ public class RetroSnakeWindow extends BaseWindow {
         world.tick();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (null != world) {
+            world.destroy();
+            world = null;
+        }
+    }
+
     private void addOrientationButton(int x, int y, int angle, Runnable action) {
         Graphics[] icons = {
                 newRegularTriangle(angle, COLOR_NORMAL),

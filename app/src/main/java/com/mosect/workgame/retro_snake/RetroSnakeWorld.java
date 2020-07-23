@@ -1,5 +1,6 @@
 package com.mosect.workgame.retro_snake;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -18,7 +19,7 @@ public class RetroSnakeWorld {
     /**
      * 默认蛇长度
      */
-    private static final int DEF_SNAKE_LENGTH = 4;
+    private static final int DEF_SNAKE_LENGTH = 8;
 
     private Snake snake; // 蛇
     private Reward reward; // 奖励
@@ -33,6 +34,8 @@ public class RetroSnakeWorld {
     private int yBlocks;
     private Block[] blocks;
     private long tickTime;
+    private Bitmap panelBitmap;
+    private Canvas panelCanvas;
 
     public RetroSnakeWorld(int blockSize, int xBlocks, int yBlocks, int panelX, int panelY) {
         this.blockSize = blockSize;
@@ -64,6 +67,10 @@ public class RetroSnakeWorld {
             int y = i / xBlocks;
             this.blocks[i] = new Block(x, y);
         }
+
+        this.panelBitmap = Bitmap.createBitmap(this.panelBounds.width(),
+                this.panelBounds.height(), Bitmap.Config.ARGB_8888);
+        this.panelCanvas = new Canvas(panelBitmap);
     }
 
     public void init() {
@@ -150,6 +157,16 @@ public class RetroSnakeWorld {
         this.paused = paused;
     }
 
+    public void destroy() {
+        if (null != panelBitmap) {
+            if (!panelBitmap.isRecycled()) {
+                panelBitmap.recycle();
+            }
+            panelBitmap = null;
+        }
+        panelCanvas = null;
+    }
+
     /**
      * 推进游戏世界的时间
      */
@@ -187,14 +204,16 @@ public class RetroSnakeWorld {
         int sc = canvas.save();
         canvas.clipRect(panelBounds);
         canvas.translate(panelBounds.left, panelBounds.top);
+        panelCanvas.drawColor(Color.BLACK);
         // 绘制蛇
         if (null != snake) {
-            snake.draw(canvas);
+            snake.draw(panelCanvas);
         }
         // 绘制奖励
         if (null != reward) {
-            reward.draw(canvas);
+            reward.draw(panelCanvas);
         }
+        canvas.drawBitmap(panelBitmap, 0, 0, null);
         canvas.restoreToCount(sc);
     }
 

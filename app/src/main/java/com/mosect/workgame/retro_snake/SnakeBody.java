@@ -49,7 +49,7 @@ public class SnakeBody {
         return 0;
     }
 
-    public void addLength(int value) {
+    public void addHead(int value) {
         switch (direction) {
             case DOWN:
                 rect.bottom += value;
@@ -66,7 +66,24 @@ public class SnakeBody {
         }
     }
 
-    public void reduceLength(int value) {
+    public void reduceHead(int value) {
+        switch (direction) {
+            case UP:
+                rect.top = Math.min(rect.bottom, rect.top + value);
+                break;
+            case DOWN:
+                rect.bottom = Math.max(rect.top, rect.bottom - value);
+                break;
+            case RIGHT:
+                rect.right = Math.max(rect.left, rect.right - value);
+                break;
+            case LEFT:
+                rect.left = Math.min(rect.right, rect.left + value);
+                break;
+        }
+    }
+
+    public void reduceEnd(int value) {
         switch (direction) {
             case LEFT:
                 rect.right = Math.max(rect.left, rect.right - value);
@@ -83,8 +100,58 @@ public class SnakeBody {
         }
     }
 
+    public boolean isEmpty() {
+        return rect.isEmpty();
+    }
+
     public void draw(Canvas canvas, Paint paint) {
         canvas.drawRect(rect, paint);
+    }
+
+    public int getHeadX(int blockSize) {
+        switch (direction) {
+            case RIGHT:
+                if (rect.right % blockSize == 0) {
+                    return rect.right / blockSize - 1;
+                } else {
+                    return rect.right / blockSize;
+                }
+            case LEFT:
+            case DOWN:
+            case UP:
+                return rect.left / blockSize;
+        }
+        return -1;
+    }
+
+    public int getHeadY(int blockSize) {
+        switch (direction) {
+            case DOWN:
+                if (rect.bottom % blockSize == 0) {
+                    return rect.bottom / blockSize - 1;
+                } else {
+                    return rect.bottom / blockSize;
+                }
+            case LEFT:
+            case RIGHT:
+            case UP:
+                return rect.top / blockSize;
+        }
+        return -1;
+    }
+
+    public int getBlockOffset(int blockSize) {
+        switch (direction) {
+            case LEFT:
+                return blockSize - rect.left % blockSize;
+            case RIGHT:
+                return rect.right % blockSize;
+            case UP:
+                return blockSize - rect.top % blockSize;
+            case DOWN:
+                return rect.bottom % blockSize;
+        }
+        return 0;
     }
 
     public void clear() {

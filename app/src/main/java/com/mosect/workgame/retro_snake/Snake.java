@@ -40,87 +40,90 @@ public class Snake {
         bodies.addFirst(body);
     }
 
-    private int oldCount;
-
     public void draw(Canvas canvas) {
         if (!bodies.isEmpty()) {
             for (SnakeBody body : bodies) {
                 body.draw(canvas, paint);
             }
         }
-        if (bodies.size() != oldCount) {
-            Log.d("Snake", "bodies==================================================");
-            for (SnakeBody body : bodies) {
-                Log.d("Snake", "body: " + body);
-            }
-        }
-        oldCount = bodies.size();
     }
 
     public void tick(long time) {
         if (bodies.isEmpty()) return;
         int offset = (int) (time * speed / 1000);
-        if (offset > 0) {
-            // 增加头部身体长度
-            Direction direction = world.getNextDirection();
-            SnakeBody first = bodies.getFirst();
-            if (direction == first.getDirection()) {
-                first.addLength(offset);
+        if (offset <= 0) return;
+        SnakeBody head = bodies.getFirst();
+        Direction nextDirection = world.getNextDirection();
+
+        // 增加头部长度
+        if (head.getDirection() == nextDirection) {
+            // 方向一样
+            head.addHead(offset);
+        } else {
+            // 方向不一致
+            Log.d("Snake", "==================================");
+            int headOffset = head.getBlockOffset(world.getBlockSize());
+            int x = head.getHeadX(world.getBlockSize());
+            int y = head.getHeadY(world.getBlockSize());
+            boolean addBody = false;
+            int bodyOffset = 0;
+            if (headOffset == 0) {
+                addBody = true;
+                bodyOffset = offset;
+                Log.d("Snake", "full: " + head);
             } else {
-                int value;
-                switch (first.getDirection()) {
-                    case LEFT:
-                    case RIGHT:
-                        value = first.getLeft() % world.getBlockSize();
-                        break;
-                    case DOWN:
-                    case UP:
-                        value = first.getTop() % world.getBlockSize();
-                        break;
-                    default:
-                        value = 0;
-                        break;
-                }
-                if (value == 0) {
-                    // 刚好填满格子
-//                    Log.d("Snake", "value==0  >>>>  " + first);
-                    SnakeBody body = nextBody(offset);
-                    if (null != body) {
-                        bodies.addFirst(body);
-                    }
+                if (headOffset + offset > world.getBlockSize()) {
+                    // 移动超过一格
+                    int fullOffset = world.getBlockSize() - headOffset;
+                    head.addHead(fullOffset);
+                    Log.d("Snake", "addHead:" + head);
+                    addBody = true;
+                    bodyOffset = offset - fullOffset;
                 } else {
-                    if (value + offset > world.getBlockSize()) {
-                        // 移动超过一个格子，先填满格子，再增加下一个身体
-                        int fullOffset = world.getBlockSize() - value;
-                        first.addLength(fullOffset);
-//                        Log.d("Snake", "addLength:full" + first);
-                        SnakeBody body = nextBody(offset - fullOffset);
-                        if (null != body) {
-                            bodies.addFirst(body);
-                        }
-                    } else {
-                        // 移动少于一个格子
-                        first.addLength(offset);
-//                        Log.d("Snake", "first.addLength(offset)");
-                    }
+                    // 移动未超过一格
+                    head.addHead(offset);
                 }
             }
-            int reduceValue = offset;
-            while (reduceValue > 0) {
-                SnakeBody last = bodies.getLast();
-                int lastLength = last.getLength();
-                if (lastLength > reduceValue) {
-                    // 尾部长度足够
-                    // 缩短身体长度
-                    last.reduceLength(reduceValue);
-                    reduceValue = 0;
-                } else {
-                    // 长度不够，移除身体
-                    bodies.removeLast();
-                    reduceValue -= lastLength;
+            if (addBody) {
+                // 需要新增身体
+                SnakeBody body = nextBody(x, y, nextDirection, bodyOffset);
+                if (null != body) {
+                    // 缩短头部
+                    Log.d("Snake", "beforeReduceHead:" + head);
+                    head.reduceHead(world.getBlockSize());
+                    Log.d("Snake", "reduceHead:" + head);
+                    // 移除为空的身体
+                    if (head.isEmpty()) {
+                        bodies.removeFirst();
+                    }
+                    // 增加身体
+                    bodies.addFirst(body);
                 }
             }
         }
+
+        // 缩短尾部长度
+        int reduceValue = offset;
+        while (reduceValue > 0 && bodies.size() > 0) {
+            SnakeBody body = bodies.getLast();
+            int length = body.getLength();
+            if (length >= reduceValue) {
+                body.reduceEnd(reduceValue);
+                if (body.isEmpty()) {
+                    bodies.removeLast();
+                }
+                reduceValue = 0;
+            } else {
+                body.reduceEnd(length);
+                bodies.removeLast();
+                reduceValue -= length;
+            }
+        }
+
+        /*Log.d("Snake", "======================================");
+        for (SnakeBody body : bodies) {
+            Log.d("Snake", "length:" + body.getLength());
+        }*/
     }
 
     public Direction getDirection() {
@@ -130,69 +133,15 @@ public class Snake {
         return null;
     }
 
-    private SnakeBody nextBody(int length) {
-        Direction direction = world.getNextDirection();
-        SnakeBody first = bodies.getFirst();
-        int l = first.getLeft() / world.getBlockSize();
-        int t = first.getTop() / world.getBlockSize();
-        int r = first.getRight() / world.getBlockSize() +
-                (first.getRight() % world.getBlockSize() == 0 ? 0 : 1);
-        int b = first.getBottom() / world.getBlockSize() +
-                (first.getBottom() % world.getBlockSize() == 0 ? 0 : 1);
-        switch (first.getDirection()) {
-            case LEFT:
-                return genBody(l, t, length, direction);
-            case RIGHT:
-                return genBody(r - 1, t, length, direction);
-            case UP:
-                return genBody(l, t, length, direction);
-            case DOWN:
-                return genBody(l, b - 1, length, direction);
-        }
-        return null;
-    }
-
-    private SnakeBody genBody(int x, int y, int length, Direction direction) {
-        int fx = x;
-        int fy = y;
-        switch (direction) {
-            case LEFT:
-                fx -= 1;
-                break;
-            case RIGHT:
-                fx += 1;
-                break;
-            case DOWN:
-                fy += 1;
-                break;
-            case UP:
-                fy -= 1;
-                break;
-            default:
-                fx = -1;
-                fy = -1;
-                break;
-        }
-        if (fx >= 0 && fx < world.getXBlocks() && y >= 0 && y < world.getYBlocks()) {
-            SnakeBody body = new SnakeBody();
-            int left = fx * world.getBlockSize();
-            int top = fy * world.getBlockSize();
+    private SnakeBody nextBody(int x, int y, Direction direction, int length) {
+        if (x >= 0 && x < world.getXBlocks() && y >= 0 && y < world.getYBlocks()) {
+            int left = x * world.getBlockSize();
+            int top = y * world.getBlockSize();
             int right = left + world.getBlockSize();
             int bottom = top + world.getBlockSize();
-            switch (direction) {
-                case UP:
-                    body.set(left, bottom - length, right, bottom, direction);
-                    break;
-                case DOWN:
-                    body.set(left, top, right, top + length, direction);
-                    break;
-                case RIGHT:
-                    body.set(left, top, left + length, bottom, direction);
-                    break;
-                case LEFT:
-                    body.set(right - length, top, right, bottom, direction);
-                    break;
-            }
+            SnakeBody body = new SnakeBody();
+            body.set(left, top, right, bottom, direction);
+            body.addHead(length);
             return body;
         }
         return null;
