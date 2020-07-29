@@ -7,6 +7,8 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 
+import java.util.Random;
+
 /**
  * 贪吃蛇游戏世界
  */
@@ -36,6 +38,7 @@ public class RetroSnakeWorld {
     private long tickTime;
     private Bitmap panelBitmap;
     private Canvas panelCanvas;
+    private Random random;
 
     public RetroSnakeWorld(int blockSize, int xBlocks, int yBlocks, int panelX, int panelY) {
         this.blockSize = blockSize;
@@ -71,6 +74,7 @@ public class RetroSnakeWorld {
         this.panelBitmap = Bitmap.createBitmap(this.panelBounds.width(),
                 this.panelBounds.height(), Bitmap.Config.ARGB_8888);
         this.panelCanvas = new Canvas(panelBitmap);
+        this.random = new Random();
     }
 
     public void init() {
@@ -78,6 +82,10 @@ public class RetroSnakeWorld {
         snake = new Snake(this);
         int sx = (xBlocks - DEF_SNAKE_LENGTH) / 2;
         int sy = yBlocks / 2;
+        for (int i = 0; i < DEF_SNAKE_LENGTH; i++) {
+            Block block = getBlock(sx + i, sy);
+            block.setUsed(true);
+        }
         SnakeBody body = new SnakeBody();
         int left = sx * blockSize;
         int top = sy * blockSize;
@@ -88,7 +96,9 @@ public class RetroSnakeWorld {
         snake.setSpeed(300);
         moveSnake(Direction.RIGHT);
 
+        // 产生奖励
         reward = new Reward(this);
+        genReward();
     }
 
     public int getBlockSize() {
@@ -185,7 +195,7 @@ public class RetroSnakeWorld {
             snake.tick(time);
         }
         if (null != reward) {
-            reward.tick();
+            reward.tick(time);
         }
     }
 
@@ -229,5 +239,41 @@ public class RetroSnakeWorld {
             return blocks[x + y * xBlocks];
         }
         return null;
+    }
+
+    /**
+     * 结束游戏
+     */
+    public void overGame() {
+        if (!over) {
+            over = true;
+            // TODO: 2020/7/29 游戏结束
+        }
+    }
+
+    /**
+     * 产生奖励
+     */
+    public void genReward() {
+        int len = snake.getBlockLength();
+        int index = random.nextInt(blocks.length - len);
+        int offset = 0;
+        for (Block block : blocks) {
+            if (block.isUsed()) continue;
+            if (offset == index) {
+                reward.setLocation(block.getX(), block.getY());
+                break;
+            }
+            offset++;
+        }
+    }
+
+    /**
+     * 获取奖励
+     *
+     * @return 奖励
+     */
+    public Reward getReward() {
+        return reward;
     }
 }

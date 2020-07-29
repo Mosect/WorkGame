@@ -1,5 +1,7 @@
 package com.mosect.workgame.retro_snake;
 
+import android.util.Log;
+
 /**
  * 面板格子
  */
@@ -24,7 +26,10 @@ public class Block {
     }
 
     public void setUsed(boolean used) {
-        this.used = used;
+        if (this.used != used) {
+            this.used = used;
+            Log.d("Block", String.format("[%02d,%02d] used %s -> %s", x, y, !used, used));
+        }
     }
 
     public boolean isUsed() {

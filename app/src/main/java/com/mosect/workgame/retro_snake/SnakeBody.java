@@ -140,6 +140,38 @@ public class SnakeBody {
         return -1;
     }
 
+    public int getEndX(int blockSize) {
+        switch (direction) {
+            case LEFT:
+                if (rect.right % blockSize == 0) {
+                    return rect.right / blockSize - 1;
+                } else {
+                    return rect.right / blockSize;
+                }
+            case DOWN:
+            case UP:
+            case RIGHT:
+                return rect.left / blockSize;
+        }
+        return -1;
+    }
+
+    public int getEndY(int blockSize) {
+        switch (direction) {
+            case UP:
+                if (rect.bottom % blockSize == 0) {
+                    return rect.bottom / blockSize - 1;
+                } else {
+                    return rect.bottom / blockSize;
+                }
+            case LEFT:
+            case RIGHT:
+            case DOWN:
+                return rect.top / blockSize;
+        }
+        return -1;
+    }
+
     public int getBlockOffset(int blockSize) {
         switch (direction) {
             case LEFT:
