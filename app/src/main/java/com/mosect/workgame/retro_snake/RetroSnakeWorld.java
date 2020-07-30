@@ -22,6 +22,14 @@ public class RetroSnakeWorld {
      * 默认蛇长度
      */
     private static final int DEF_SNAKE_LENGTH = 8;
+    /**
+     * 蛇的最小速度
+     */
+    private static final int SNAKE_MIN_SPEED = 200;
+    /**
+     * 蛇的最大速度
+     */
+    private static final int SNAKE_MAX_SPEED = 450;
 
     private Snake snake; // 蛇
     private Reward reward; // 奖励
@@ -93,7 +101,7 @@ public class RetroSnakeWorld {
         int bottom = top + blockSize;
         body.set(left, top, right, bottom, Direction.RIGHT);
         snake.setBody(body);
-        snake.setSpeed(300);
+        snake.setSpeed(SNAKE_MIN_SPEED);
         moveSnake(Direction.RIGHT);
 
         // 产生奖励
@@ -165,6 +173,22 @@ public class RetroSnakeWorld {
      */
     public void setPaused(boolean paused) {
         this.paused = paused;
+        if (paused) {
+            tickTime = 0;
+        }
+    }
+
+    /**
+     * 设置是否加速
+     *
+     * @param quicken 是否加速
+     */
+    public void setQuicken(boolean quicken) {
+        if (quicken) {
+            snake.setSpeed(SNAKE_MAX_SPEED);
+        } else {
+            snake.setSpeed(getSnakeNormalSpeed());
+        }
     }
 
     public void destroy() {
@@ -181,7 +205,7 @@ public class RetroSnakeWorld {
      * 推进游戏世界的时间
      */
     public void tick() {
-        if (over) return;
+        if (over || paused) return;
         if (tickTime == 0) {
             tickTime = System.currentTimeMillis();
             return;
@@ -256,15 +280,20 @@ public class RetroSnakeWorld {
      */
     public void genReward() {
         int len = snake.getBlockLength();
-        int index = random.nextInt(blocks.length - len);
-        int offset = 0;
-        for (Block block : blocks) {
-            if (block.isUsed()) continue;
-            if (offset == index) {
-                reward.setLocation(block.getX(), block.getY());
-                break;
+        int count = blocks.length - len;
+        if (count > 0) {
+            int index = random.nextInt(count);
+            int offset = 0;
+            for (Block block : blocks) {
+                if (block.isUsed()) continue;
+                if (offset == index) {
+                    reward.setLocation(block.getX(), block.getY());
+                    break;
+                }
+                offset++;
             }
-            offset++;
+        } else {
+            reward.setLocation(-1, -1);
         }
     }
 
@@ -275,5 +304,16 @@ public class RetroSnakeWorld {
      */
     public Reward getReward() {
         return reward;
+    }
+
+    /**
+     * 获取蛇正常速度
+     *
+     * @return 正常速度
+     */
+    private int getSnakeNormalSpeed() {
+        int len = snake.getBlockLength();
+        float s = len / (float) blocks.length;
+        return (int) (SNAKE_MIN_SPEED + (SNAKE_MAX_SPEED - SNAKE_MIN_SPEED) * s);
     }
 }

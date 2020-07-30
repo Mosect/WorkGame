@@ -12,6 +12,7 @@ public class ActionButton extends Widget {
     private int padding;
     private boolean pressed;
     private Runnable action;
+    private Runnable upAction;
 
     public void setIcons(Graphics[] icons) {
         this.icons = icons;
@@ -23,6 +24,10 @@ public class ActionButton extends Widget {
 
     public void setAction(Runnable action) {
         this.action = action;
+    }
+
+    public void setUpAction(Runnable upAction) {
+        this.upAction = upAction;
     }
 
     @Override
@@ -75,6 +80,14 @@ public class ActionButton extends Widget {
         super.onClick();
         if (null != action) {
             action.run();
+        }
+    }
+
+    @Override
+    protected void onPressedClick() {
+        super.onPressedClick();
+        if (null != upAction) {
+            upAction.run();
         }
     }
 }

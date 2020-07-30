@@ -70,10 +70,18 @@ public class RetroSnakeWindow extends BaseWindow {
                 newCircle(COLOR_NORMAL),
                 newCircle(COLOR_PRESSED),
         };
-        addButton(1720, 800, icons, new Runnable() {
+        ActionButton button = addButton(1720, 800, icons, new Runnable() {
             @Override
             public void run() {
                 // 加速
+                world.setQuicken(true);
+            }
+        });
+        button.setUpAction(new Runnable() {
+            @Override
+            public void run() {
+                // 取消加速
+                world.setQuicken(false);
             }
         });
 
@@ -119,11 +127,22 @@ public class RetroSnakeWindow extends BaseWindow {
                 case KeyEvent.KEYCODE_C:
                 case KeyEvent.KEYCODE_V:
                     // 加速
+                    world.setQuicken(true);
                     break;
                 case KeyEvent.KEYCODE_ESCAPE:
                 case KeyEvent.KEYCODE_E:
                     // 退出
                     getContext().setWindow(new MainWindow());
+                    break;
+            }
+        } else if (event.getAction() == KeyEvent.ACTION_UP) {
+            switch (event.getCode()){
+                case KeyEvent.KEYCODE_Z:
+                case KeyEvent.KEYCODE_X:
+                case KeyEvent.KEYCODE_C:
+                case KeyEvent.KEYCODE_V:
+                    // 取消加速
+                    world.setQuicken(false);
                     break;
             }
         }
@@ -150,6 +169,18 @@ public class RetroSnakeWindow extends BaseWindow {
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        world.setPaused(false);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        world.setPaused(true);
+    }
+
     private void addOrientationButton(int x, int y, int angle, Runnable action) {
         Graphics[] icons = {
                 newRegularTriangle(angle, COLOR_NORMAL),
@@ -158,7 +189,7 @@ public class RetroSnakeWindow extends BaseWindow {
         addButton(x, y, icons, action);
     }
 
-    private void addButton(int x, int y, Graphics[] icons, Runnable action) {
+    private ActionButton addButton(int x, int y, Graphics[] icons, Runnable action) {
         ActionButton button = new ActionButton();
         button.setIcons(icons);
         button.setPadding(BUTTON_PADDING);
@@ -167,6 +198,7 @@ public class RetroSnakeWindow extends BaseWindow {
         button.update();
         button.setAction(action);
         addWidget(button);
+        return button;
     }
 
     private Graphics newRegularTriangle(int angle, int color) {

@@ -110,10 +110,31 @@ public class Snake {
             }
         }
 
-        SnakeBody first = bodies.getFirst();
-
         // 缩短尾部长度
         int reduceValue = offset;
+
+        SnakeBody first = bodies.getFirst();
+        int fx = first.getHeadX(world.getBlockSize());
+        int fy = first.getHeadY(world.getBlockSize());
+        Reward reward = world.getReward();
+        if (reward.getX() == fx && reward.getY() == fy) {
+            // 吃掉奖励，增加身体
+            int fbo = first.getBlockOffset(world.getBlockSize());
+            int add = world.getBlockSize() - fbo;
+            first.addHead(add);
+            reduceValue -= fbo;
+            if (reduceValue < 0) {
+                // 因为尾部不能再剪短，因此要增加头部
+                head.addHead(-reduceValue);
+                int nx = head.getHeadX(world.getBlockSize());
+                int ny = head.getHeadY(world.getBlockSize());
+                usedBlocks(fx, fy, nx, ny);
+                reduceValue = 0;
+            }
+            // 产生新的奖励
+            world.genReward();
+        }
+
         while (reduceValue > 0 && bodies.size() > 0) {
             SnakeBody body = bodies.getLast();
             int length = body.getLength();
